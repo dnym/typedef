@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Typedef</title>
+<meta name="description" content="Typing trainer that drills your weak keys with real words and your own code.">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='6' width='28' height='20' rx='4' fill='%23e07a3f'/%3E%3Ctext x='16' y='21' font-family='monospace' font-size='13' text-anchor='middle' fill='white'%3Etd%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<header class="top">
+  <h1 class="brand">typedef</h1>
+  <nav class="modes" id="modes" aria-label="Practice mode">
+    <button type="button" data-mode="sv">Svenska</button>
+    <button type="button" data-mode="en">English</button>
+    <button type="button" data-mode="code">Code</button>
+    <button type="button" data-mode="drill">Symbol drill</button>
+  </nav>
+  <div class="profile-pill" id="profile-pill" title="Keyboard profile"></div>
+  <button type="button" class="icon-btn" id="open-settings" aria-controls="settings" aria-expanded="false">Settings</button>
+</header>
+
+<main>
+  <section class="typing" id="typing" tabindex="-1" aria-label="Exercise">
+    <div class="text" id="text"></div>
+    <div class="focus-hint" id="focus-hint">Click here or press any key to start</div>
+    <textarea id="input" class="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Typing input"></textarea>
+  </section>
+
+  <section class="strip" aria-label="Statistics">
+    <div class="stat"><span class="v" id="s-wpm">–</span><span class="k">wpm</span></div>
+    <div class="stat"><span class="v" id="s-acc">–</span><span class="k">accuracy</span></div>
+    <div class="stat"><span class="v" id="s-last">–</span><span class="k">last exercise</span></div>
+    <div class="stat"><span class="v" id="s-today">–</span><span class="k">today</span></div>
+    <div class="keys-help"><kbd>Esc</kbd> new exercise</div>
+  </section>
+
+  <section class="weak" aria-label="Weakest units">
+    <h2>Weakest</h2>
+    <ol id="weak-list"></ol>
+  </section>
+
+  <section class="board" id="board-wrap" aria-label="Keyboard">
+    <div class="board-tools">
+      <label><input type="checkbox" id="opt-hint"> Next-key hint</label>
+      <label><input type="checkbox" id="opt-heatmap"> Heatmap</label>
+    </div>
+    <div id="board"></div>
+  </section>
+</main>
+
+<aside class="settings" id="settings" hidden aria-label="Settings">
+  <div class="settings-head">
+    <h2>Settings</h2>
+    <button type="button" class="icon-btn" id="close-settings">Close</button>
+  </div>
+
+  <details open>
+    <summary>Practice</summary>
+    <label class="row">Focus on weak units <output id="focus-out"></output>
+      <input type="range" id="opt-focus" min="0" max="100" step="5">
+    </label>
+    <p class="note">Share of words chosen because they contain a weak unit. The rest are drawn by frequency.</p>
+    <label class="row">Error weight λ
+      <input type="number" id="opt-lambda" min="0" max="20" step="0.5">
+    </label>
+    <label class="check"><input type="checkbox" id="opt-symbols"> Symbols, digits and capitals in prose</label>
+    <label class="check"><input type="checkbox" id="opt-comments"> Skip comments in code</label>
+    <label class="check"><input type="checkbox" id="opt-keyboard"> Show keyboard</label>
+  </details>
+
+  <details open>
+    <summary>Keyboard profile</summary>
+    <p class="note">Statistics are kept per profile, so each board trains its own weak pairs.</p>
+    <div class="row-inline">
+      <select id="profile-select" aria-label="Profile"></select>
+      <button type="button" id="profile-new">New</button>
+      <button type="button" id="profile-rename">Rename</button>
+      <button type="button" id="profile-delete">Delete</button>
+    </div>
+    <label class="row">Layout picture
+      <select id="layout-select"></select>
+    </label>
+    <p class="note">Only draws the board. What counts is the character your keyboard sends.</p>
+    <div class="sub">
+      <label class="row">Import a keyboard-layout-editor JSON file
+        <input type="file" id="kle-file" accept=".json,application/json">
+      </label>
+      <textarea id="kle-text" rows="3" placeholder="…or paste the raw data here"></textarea>
+      <div class="row-inline">
+        <input type="text" id="kle-name" placeholder="Name">
+        <button type="button" id="kle-add">Add layout</button>
+        <button type="button" id="kle-remove">Remove selected</button>
+      </div>
+      <p class="msg" id="kle-msg" role="status"></p>
+    </div>
+    <button type="button" id="reset-stats" class="danger">Reset this profile's statistics</button>
+  </details>
+
+  <details open>
+    <summary>Code files</summary>
+    <p class="note">Paste or drop your own source files. They stay in this browser and are never put in a link.</p>
+    <div class="drop" id="drop">Drop files here, or <label class="linkish">choose<input type="file" id="code-file" multiple hidden></label></div>
+    <input type="text" id="code-name" placeholder="File name with extension, e.g. main.rs">
+    <textarea id="code-text" rows="5" placeholder="Paste code here"></textarea>
+    <button type="button" id="code-add">Add file</button>
+    <ul class="files" id="code-files"></ul>
+  </details>
+
+  <details open>
+    <summary>Save and move</summary>
+    <p class="note">Progress is saved in this browser. A link carries settings and scores to another browser; a backup file carries everything.</p>
+    <div class="row-inline">
+      <button type="button" id="copy-link">Copy link</button>
+      <button type="button" id="download-backup">Download backup</button>
+      <label class="button">Load backup<input type="file" id="load-backup" accept=".json,application/json" hidden></label>
+    </div>
+    <p class="msg" id="save-msg" role="status"></p>
+  </details>
+
+  <details>
+    <summary>History</summary>
+    <table class="history"><thead><tr><th>Day</th><th>Min</th><th>WPM</th><th>Acc.</th></tr></thead><tbody id="history"></tbody></table>
+  </details>
+
+  <p class="credits">Word lists from <a href="https://github.com/hermitdave/FrequencyWords">FrequencyWords</a> by Hermit Dave, CC BY-SA 4.0. App code BSD-2-Clause-Patent. <a href="data/NOTICE.md">Notices</a>.</p>
+</aside>
+
+<dialog id="import-dialog">
+  <form method="dialog">
+    <h2 id="import-title">Import progress?</h2>
+    <div id="import-summary"></div>
+    <p class="note">Replacing overwrites the matching data in this browser.</p>
+    <div class="row-inline end">
+      <button value="skip">Skip</button>
+      <button value="replace" class="primary">Replace</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

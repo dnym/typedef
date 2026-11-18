@@ -1,0 +1,10 @@
+{
+  "name": "typedef",
+  "private": true,
+  "type": "module",
+  "description": "Typing trainer. No build step; this file only marks the JavaScript as ES modules for node --test.",
+  "license": "BSD-2-Clause-Patent",
+  "scripts": {
+    "test": "node --test test/"
+  }
+}

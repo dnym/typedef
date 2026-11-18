@@ -1,0 +1,8 @@
+# Interjections and abbreviations that are not useful practice words.
+mr mrs ms dr st uh um hmm mm eh ah huh hm yo ok tv
+# Contraction fragments ("didn" from "didn't") and OCR noise ("lt" for "It").
+didn doesn isn wasn couldn wouldn shouldn haven hasn aren weren ain mustn needn ll ve re wa em ya lt ls lf ln id ii aii im th ty pm
+# Sounds and foreign fragments.
+wow ooh mmm aah ow yep shh aw ugh aye ho ohh nah heh ahh gee erm yup woo yay na oi uhh boo ha hee wha ew aha ay la de da san los el le pa jo mo mi fu di en et si lo un chi tae yu wu las kay ja ana lin jan jin han mel vic rex jen hon jon val jew li
+# Dropped-g spellings ("comin'" loses its apostrophe in the source).
+fuckin goin doin nothin somethin comin gettin talkin lookin tryin

@@ -1,0 +1,71 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test test/
+
+  stage:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Nothing is compiled: the site is the static files as they are.
+      - name: Stage static files
+        run: |
+          mkdir -p _site
+          cp -r index.html style.css js data LICENSE README.md serve.py _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Zip
+        if: github.event_name == 'release'
+        run: cd _site && zip -r "../typedef-${{ github.event.release.tag_name }}.zip" .
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'release'
+        with:
+          name: release-zip
+          path: typedef-*.zip
+
+  pages:
+    needs: stage
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  release:
+    needs: stage
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-zip
+      - name: Attach zip to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" typedef-*.zip --repo "${{ github.repository }}"
