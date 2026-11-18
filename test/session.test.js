@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Session, itemsFromText } from '../js/session.js';
+import { Session, itemsFromText, withEnd } from '../js/session.js';
 
 test('blocks on errors and counts a miss once per position', () => {
   const s = new Session(itemsFromText('ab'));
@@ -42,4 +42,27 @@ test('speed from active time', () => {
   for (let i = 0; i < 10; i++) s.feed('a', i * 120);
   // 10 chars in 1080 ms
   assert.ok(Math.abs(s.wpm - 10 / 5 / (1080 / 60000)) < 1e-9);
+});
+
+test('a line closes with space or Enter, not on its last letter', () => {
+  for (const close of [' ', '\n']) {
+    const s = new Session(withEnd(itemsFromText('ab'), ' '));
+    s.feed('a', 0);
+    assert.equal(s.feed('b', 100).done, false);
+    const r = s.feed(close, 200);
+    assert.equal(r.ok, true);
+    assert.equal(r.done, true);
+    assert.equal(r.event.ch, close, 'stats get the key pressed');
+    assert.equal(s.accuracy, 1);
+  }
+  const code = new Session(withEnd(itemsFromText('x;'), '\n'));
+  code.feed('x', 0);
+  code.feed(';', 50);
+  assert.equal(code.feed('\n', 100).done, true);
+});
+
+test('timing chains across lines', () => {
+  const s = new Session(itemsFromText('a'), { prev: { ch: ' ', t: 1000 } });
+  assert.deepEqual(s.feed('a', 1150).event, { ch: 'a', prev: ' ', dt: 150, miss: false, wrong: null });
+  assert.equal(s.activeMs, 150);
 });

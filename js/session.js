@@ -5,6 +5,9 @@
 // character leaves the cursor in place until the right one is typed; the miss
 // counts once against the expected character and that position yields no
 // timing, so pair timings stay clean.
+//
+// An item may list alternatives in `alt`: the closing keystroke of a line
+// is a space or Enter, whichever the hand reaches for.
 
 export const PAUSE_MS = 3000;
 
@@ -12,14 +15,22 @@ export function itemsFromText(text) {
   return [...text].map((ch) => ({ ch, skip: false }));
 }
 
+// Finish an exercise with one more keystroke, as typing would continue:
+// space or Enter both close it.
+export function withEnd(items, ch = ' ') {
+  return [...items, { ch, skip: false, alt: ch === ' ' ? ['\n'] : [' '], end: true }];
+}
+
 export class Session {
-  constructor(items, { pauseMs = PAUSE_MS } = {}) {
+  // prev: { ch, t } of the keystroke before this exercise, so the first
+  // character of a line that follows straight on still gets a pair timing.
+  constructor(items, { pauseMs = PAUSE_MS, prev = null } = {}) {
     this.items = items;
     this.pauseMs = pauseMs;
     this.pos = 0;
-    this.prevCh = null;
-    this.prevT = null;
-    this.lastKeyT = null;
+    this.prevCh = prev ? prev.ch : null;
+    this.prevT = prev ? prev.t : null;
+    this.lastKeyT = prev ? prev.t : null;
     this.miss = false;
     this.wrong = null;
     this.missed = new Set(); // positions that had at least one miss
@@ -54,8 +65,9 @@ export class Session {
     if (this.lastKeyT != null) this.activeMs += Math.min(Math.max(0, t - this.lastKeyT), this.pauseMs);
     this.lastKeyT = t;
     const pos = this.pos;
-    const expected = this.items[pos].ch;
-    if (ch !== expected) {
+    const item = this.items[pos];
+    const expected = item.ch;
+    if (ch !== expected && !(item.alt && item.alt.includes(ch))) {
       if (!this.miss) this.wrong = ch;
       this.miss = true;
       this.missed.add(pos);
@@ -66,10 +78,12 @@ export class Session {
       dt = t - this.prevT;
       if (dt > this.pauseMs || dt <= 0) dt = null;
     }
-    const event = { ch: expected, prev: this.prevCh, dt, miss: this.miss, wrong: this.wrong };
+    // Stats get the key actually pressed, so an Enter that closes a line is
+    // timed as Enter, not as the space it stood in for.
+    const event = { ch, prev: this.prevCh, dt, miss: this.miss, wrong: this.wrong };
     this.typed++;
     if (!this.miss) this.clean++;
-    this.prevCh = expected;
+    this.prevCh = ch;
     this.prevT = t;
     this.miss = false;
     this.wrong = null;

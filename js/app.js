@@ -5,7 +5,7 @@
 // exercise.
 
 import { attachInput } from './input.js';
-import { Session, itemsFromText } from './session.js';
+import { Session, itemsFromText, withEnd } from './session.js';
 import { record, weakness, weakest } from './stats.js';
 import { makeContext, buildLine } from './picker.js';
 import { allChunks, pickChunk, drillLines, buildDrill, chunkText } from './code.js';
@@ -32,6 +32,7 @@ let hintEls = [];
 let chunkCache = null;
 let drillCache = null;
 let saveTimer = null;
+let lastKey = null; // { ch, t, wall } of the keystroke that closed the last exercise
 
 const profile = () => state.profiles[state.active];
 const settings = () => state.settings;
@@ -104,7 +105,7 @@ async function newExercise({ fresh = false } = {}) {
 
   if (isProse(mode)) {
     if (fresh || !nextLine || nextLine.mode !== mode) nextLine = { mode, text: await makeProseLine(mode) };
-    items = itemsFromText(nextLine.text);
+    items = withEnd(itemsFromText(nextLine.text), ' ');
     nextLine = { mode, text: await makeProseLine(mode) };
     preview = nextLine.text;
   } else if (!codeFiles().length) {
@@ -119,7 +120,7 @@ async function newExercise({ fresh = false } = {}) {
     }
     recentChunks.push(pick.key);
     while (recentChunks.length > Math.min(5, chunkCache.length - 1)) recentChunks.shift();
-    items = pick.items;
+    items = withEnd(pick.items, '\n');
   } else {
     if (!drillCache) drillCache = drillLines(codeFiles(), { skipComments: settings().skipComments });
     const lines = buildDrill(drillCache, weakMap(), { recent: recentDrill });
@@ -127,10 +128,12 @@ async function newExercise({ fresh = false } = {}) {
       showEmpty('No lines with symbols found in your code files.');
       return;
     }
-    items = itemsFromText(lines.join('\n'));
+    items = withEnd(itemsFromText(lines.join('\n')), '\n');
   }
 
-  session = new Session(items);
+  // Prose lines follow on from each other, so the timing chain continues.
+  const prev = isProse(mode) && lastKey && performance.now() - lastKey.wall < 3000 ? lastKey : null;
+  session = new Session(items, { prev });
   exercise = { mode, items, spans: [] };
   renderExercise(preview);
   updateCursor();
@@ -214,6 +217,7 @@ function finishHistory() {
 
 function finishExercise() {
   const s = session;
+  lastKey = { ch: s.prevCh, t: s.prevT, wall: performance.now() };
   finishHistory();
   session = null;
   $('s-last').textContent = `${Math.round(s.wpm)} · ${pct(s.accuracy)}`;
