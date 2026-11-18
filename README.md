@@ -58,7 +58,7 @@ before replacing anything.
 ## Development
 
 ```sh
-node --test test/                                   # no dependencies
+node --test test/*.test.js                                   # no dependencies
 tools/build-words.py sv path/to/sv_50k.txt          # regenerate data/words-sv.js
 ```
 
